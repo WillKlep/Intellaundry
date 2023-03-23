@@ -1,0 +1,4 @@
+.idea/
+venv/
+arduino-cli.exe
+arduino-cli.yaml
