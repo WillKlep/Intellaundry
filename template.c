@@ -102,6 +102,8 @@ int httpResponseCode;
 int current;
 int cur_max = 0;
 int cur_min = 4095;
+#define CUR_OFFSET 66
+#define CUR_SCALE 58
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) { //Check the current connection status
@@ -113,7 +115,7 @@ void loop() {
       cur_min = (cur_min > current) ? current : cur_min; //save min and max of reading  
       cur_max = (cur_max < current) ? current : cur_max;    
     }
-    current = (int)(((cur_max - (cur_max + cur_min) / 2 * 1000) - cur_offset) / cur_scale) * 1000; //current in mA
+    current = (int)(((cur_max - (cur_max + cur_min) / 2 * 1000) - CUR_OFFSET) / CUR_SCALE) * 1000; //current in mA
     doc["espID"] = NODE_ID;
     doc["current"] = (float)current / 1000; //displays 3 decimals of precision 
     doc["count"] = count;
