@@ -1,4 +1,4 @@
-# requires arduino-cli.exe and plug_send_template.txt to be in same folder
+# requires arduino-cli.exe and template.c to be in same folder
 import re
 import os
 import subprocess
@@ -28,7 +28,7 @@ node_ID = input("Enter node name or leave blank to use MAC address: ")
 wifi_ssid = input("Enter Wifi SSID: ")
 wifi_pass = input("Enter WiFi Password: ")
 
-with open('plug_send_template.txt','r') as file:
+with open('template.c','r') as file:
     filedata = file.read()
 
 filedata = re.sub('USER_SSID', wifi_ssid, filedata) # substitutes user SSID and password into arduino code
