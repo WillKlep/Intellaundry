@@ -45,13 +45,13 @@ int count;
 const uint16_t samplesPerRead = 10000;
 #define SENSE_PIN 34
 #define SEG_A 32
-#define SEG_B 0
-#define SEG_C 0
+#define SEG_B 33
+#define SEG_C 18
 #define SEG_D 4
-#define SEG_E 0
-#define SEG_F 0
-#define SEG_G 0
-#define SEG_DP 0
+#define SEG_E 27
+#define SEG_F 26
+#define SEG_G 25
+#define SEG_DP 19
 
 void setup() {
   count = 0;  
