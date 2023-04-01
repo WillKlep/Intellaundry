@@ -41,8 +41,8 @@ const char* root_ca = "-----BEGIN CERTIFICATE-----\n" \
 "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n" \
 "-----END CERTIFICATE-----\n";
 
-int count;
-const uint16_t samplesPerRead = 10000;
+const uint16_t samplesPerRead = 450;  //367 sample per 60hz cycle, 440 per 50hz cycle - 450 is 20.45ms
+const uint16_t samplesAveraged = 5;   //highest & lowest are dropped, remaining are averaged
 #define SENSE_PIN 34
 #define SEG_A 32
 #define SEG_B 33
@@ -53,9 +53,9 @@ const uint16_t samplesPerRead = 10000;
 #define SEG_G 25
 #define SEG_DP 19
 
-void setup() {
-  count = 0;  
 
+
+void setup() {
   pinMode(SEG_A, OUTPUT);
   pinMode(SEG_B, OUTPUT);
   pinMode(SEG_C, OUTPUT);
@@ -65,13 +65,14 @@ void setup() {
   pinMode(SEG_G, OUTPUT);
   pinMode(SEG_DP, OUTPUT);
   pinMode(SENSE_PIN, INPUT);
-  digitalWrite(SEG_A,HIGH);
-  
+
+
   adc1_config_width(ADC_WIDTH_BIT_12); //Initialize ADC width and attenuation
   adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 
-  for (int i = 0; i < 6; i++){
-    lightCycle();
+  for (int i = 0; i < 6; i++) {
+    LightCycle();
+    delay(100);
   }
   digitalWrite(SEG_A, HIGH);
   digitalWrite(SEG_B, HIGH);
@@ -79,95 +80,201 @@ void setup() {
   digitalWrite(SEG_D, HIGH);
   digitalWrite(SEG_E, HIGH);
   digitalWrite(SEG_F, HIGH);
-  delay(50); //Delay before staring wifi 
-  
+  digitalWrite(SEG_G, HIGH);
+  digitalWrite(SEG_DP, HIGH);
+  delay(50);
+
   WiFi.mode(WIFI_STA);
-  wifiMulti.addAP("USER_SSID", "USER_PASSWORD");
-  //wifiMulti.addAP("ONUGuest", NULL);
-  
+  wifiMulti.addAP("Obsidian", "2Epsilon23");  //demo wifi only
+  wifiMulti.addAP("ONUGuest", "password");
+  //WiFi.begin(ssid,password);
+
   wifiMulti.run();
-  
+
   digitalWrite(SEG_A, LOW);
   digitalWrite(SEG_B, LOW);
   digitalWrite(SEG_C, LOW);
   digitalWrite(SEG_D, LOW);
   digitalWrite(SEG_E, LOW);
   digitalWrite(SEG_F, LOW);
+  digitalWrite(SEG_G, LOW);
+  digitalWrite(SEG_DP, LOW);
+
 }
+
+
 
 char message[70];
 StaticJsonDocument<100> doc;
 HTTPClient http;
 int httpResponseCode;
 int current;
-int cur_max = 0;
-int cur_min = 4095;
-#define CUR_OFFSET 66
-#define CUR_SCALE 58
+volatile int cur;
+int recieve_state;
+int connect_state;
+unsigned long start_time = 0;
+unsigned long light_time1 = 0;
+const int cycle_time = 500;   //minimum cycle time (miliseconds)
+const int cur_scale = 57132;    //57.132
+const int cur_offset = 65811;   //65.811
+
+
 
 void loop() {
-  if (WiFi.status() == WL_CONNECTED) { //Check the current connection status
-    http.begin(url, root_ca); //Specify the URL and certificate
-    http.addHeader("Content-Type", "application/json");
-    
-    for(int i = 0; i < samplesPerRead; i++){ //Read 10000 times (takes 412ms, captures 24.72 cycles)
-      current = adc1_get_raw(ADC1_CHANNEL_6); // GPIO34
-      cur_min = (cur_min > current) ? current : cur_min; //save min and max of reading  
-      cur_max = (cur_max < current) ? current : cur_max;    
+  volatile unsigned int cur_max = 0; //Reset min and max
+  volatile unsigned int cur_min = 40000;
+  volatile unsigned long cur_sum = 0;
+  if ((millis() - start_time) > cycle_time) {
+    start_time = millis();
+    if (WiFi.status() == WL_CONNECTED) { //Check the current connection status
+      for (int i = 0; i < samplesAveraged; i++) {
+        cur = (((ReadADC() * 1000) - cur_offset) / cur_scale) * 1000; //ADC is multiplied to match scale & offset, result is then set to integer in mA
+        cur_min = (cur_min > cur) ? cur : cur_min; //save min and max of readings
+        cur_max = (cur_max < cur) ? cur : cur_max;
+        cur_sum += cur;   //running sum
+      }
+      current = (long)((cur_sum - (cur_min + cur_max)) / (samplesAveraged - 2));  //average mA after removing min & max outliers
+      recieve_state = WifiTransmit(current);
+      connect_state = recieve_state;  //checks for http response code verification to prove connection durring current data transmission
+      if (recieve_state == 1) {
+        digitalWrite(SEG_DP, HIGH);
+        delay(50);
+        digitalWrite(SEG_DP, LOW);
+      }
     }
-    current = (int)(((cur_max - (cur_max + cur_min) / 2 * 1000) - CUR_OFFSET) / CUR_SCALE) * 1000; //current in mA
-    doc["espID"] = NODE_ID;
-    doc["current"] = (float)current / 1000; //displays 3 decimals of precision 
-    doc["count"] = count;
-    serializeJson(doc, message);
-    httpResponseCode = http.POST(message);   //Send the request
-    
-    cur_max = 0; //Reset min and max
-    cur_min = 4095;
-    
-    if(httpResponseCode>0){
-      count++;
+    else {  //no connection established
+      connect_state = 0;
     }
-    
-    http.end(); //Free the resources
-  }else{
-    digitalWrite(32,HIGH);
-    WiFi.disconnect();
-    //WiFi.begin(ssid); 
-    wifiMulti.run();
-    while (WiFi.status() != WL_CONNECTED) { //Wait until connected
-      lightCycle();
-    }
-    digitalWrite(32,LOW);
   }
-  delay(500);
+  if (connect_state == 0) { //if connection is not established or proven
+    WiFi.disconnect();
+    wifiMulti.run();
+    if ((millis() - light_time1) > 100){  //step to next light animation
+      LightCycle();
+      light_time1 = millis();
+    }
+  }
+  delay(10);
 }
 
-void lightCycle() {
-  for (int j = 0; j < 6; j++) {
-    // A
-    digitalWrite(SEG_F, LOW);
-    digitalWrite(SEG_A, HIGH);
-    delay(100);
-    // B
-    digitalWrite(SEG_A, LOW);
-    digitalWrite(SEG_B, HIGH);
-    delay(100);
-    // C
-    digitalWrite(SEG_B, LOW);
-    digitalWrite(SEG_C, HIGH);
-    delay(100);
-    // D
-    digitalWrite(SEG_C, LOW);
-    digitalWrite(SEG_D, HIGH);
-    delay(100);
-    // E
-    digitalWrite(SEG_D, LOW);
-    digitalWrite(SEG_E, HIGH);
-    delay(100);
-    // F
-    digitalWrite(SEG_E, LOW);
-    digitalWrite(SEG_F, HIGH);
-    delay(100);
+
+
+int ReadADC() {
+  volatile int adc_max = 0; //Reset min and max
+  volatile int adc_min = 4095;
+  volatile int raw_adc;
+  volatile int value;
+  for (int i = 0; i < samplesPerRead; i++) {
+    raw_adc = adc1_get_raw(ADC1_CHANNEL_6); // GPIO34
+    adc_min = (adc_min > raw_adc) ? raw_adc : adc_min; //save min and max of reading
+    adc_max = (adc_max < raw_adc) ? raw_adc : adc_max;
+  }
+  value = adc_max - ((adc_max + adc_min) / 2);
+  return value;
+}
+
+
+
+int WifiTransmit(int current) {
+  static long count = 0;
+  int verify = 0;
+  http.begin(url, root_ca); //Specify the URL and certificate
+  http.addHeader("Content-Type", "application/json");
+  doc["espID"] = "Mod_5";
+  doc["current"] = current;
+  doc["count"] = count;
+  serializeJson(doc, message);
+  httpResponseCode = http.POST(message);   //Send the request
+  if (httpResponseCode > 0) {
+    count++;
+    verify = 1;
+  }
+  http.end(); //Free the resources
+  return verify;
+}
+
+
+
+void LightCycle() {
+  static int pos = 0;
+  switch (pos) {
+    case 0:
+      digitalWrite(SEG_A, HIGH);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 1:
+      digitalWrite(SEG_A, HIGH);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 2:
+      digitalWrite(SEG_A, LOW);
+      digitalWrite(SEG_B, HIGH);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 3:
+      // C
+      digitalWrite(SEG_A, LOW);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, HIGH);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 4:
+      digitalWrite(SEG_A, LOW);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, HIGH);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 5:
+      digitalWrite(SEG_A, LOW);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, HIGH);
+      digitalWrite(SEG_F, LOW);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+    case 6:
+      digitalWrite(SEG_A, LOW);
+      digitalWrite(SEG_B, LOW);
+      digitalWrite(SEG_C, LOW);
+      digitalWrite(SEG_D, LOW);
+      digitalWrite(SEG_E, LOW);
+      digitalWrite(SEG_F, HIGH);
+      digitalWrite(SEG_G, LOW);
+      digitalWrite(SEG_DP, LOW);
+      break;
+
+      if (pos >= 6) {
+        pos = 0;
+      }
+      else {
+        pos++;
+      }
   }
 }
