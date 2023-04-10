@@ -71,7 +71,7 @@ void setup() {
   adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 
   for (int i = 0; i < 6; i++) {
-    LightCycle();
+    lightCycle();
     delay(100);
   }
   digitalWrite(SEG_A, HIGH);
@@ -85,9 +85,8 @@ void setup() {
   delay(50);
 
   WiFi.mode(WIFI_STA);
-  wifiMulti.addAP("Obsidian", "2Epsilon23");  //demo wifi only
-  wifiMulti.addAP("ONUGuest", "password");
-  //WiFi.begin(ssid,password);
+  wifiMulti.addAP(USER_SSID, USER_PASSWORD);  //demo wifi only
+  //wifiMulti.addAP("ONUGuest", "password");
 
   wifiMulti.run();
 
@@ -104,13 +103,13 @@ void setup() {
 
 
 
-char message[70];
-StaticJsonDocument<100> doc;
+char message[128];
+StaticJsonDocument<128> doc;
 HTTPClient http;
 int httpResponseCode;
 int current;
 volatile int cur;
-int recieve_state;
+int receive_state;
 int connect_state;
 unsigned long start_time = 0;
 unsigned long light_time1 = 0;
@@ -134,9 +133,9 @@ void loop() {
         cur_sum += cur;   //running sum
       }
       current = (long)((cur_sum - (cur_min + cur_max)) / (samplesAveraged - 2));  //average mA after removing min & max outliers
-      recieve_state = WifiTransmit(current);
-      connect_state = recieve_state;  //checks for http response code verification to prove connection durring current data transmission
-      if (recieve_state == 1) {
+      receive_state = WifiTransmit(current);
+      connect_state = receive_state;  //checks for http response code verification to prove connection durring current data transmission
+      if (receive_state == 1) {
         digitalWrite(SEG_DP, HIGH);
         delay(50);
         digitalWrite(SEG_DP, LOW);
@@ -150,7 +149,7 @@ void loop() {
     WiFi.disconnect();
     wifiMulti.run();
     if ((millis() - light_time1) > 100){  //step to next light animation
-      LightCycle();
+      lightCycle();
       light_time1 = millis();
     }
   }
@@ -180,9 +179,13 @@ int WifiTransmit(int current) {
   int verify = 0;
   http.begin(url, root_ca); //Specify the URL and certificate
   http.addHeader("Content-Type", "application/json");
-  doc["espID"] = "Mod_5";
+  doc["espID"] = NODE_ID;
   doc["current"] = current;
   doc["count"] = count;
+  doc["cscID"] = CSC_ID;
+  doc["buildingID"] = BUILDING_ID;
+  doc["espPswd"] = "cjfskbbxgzkpaskb";
+  doc["machineType"] = MACHINE_TYPE;
   serializeJson(doc, message);
   httpResponseCode = http.POST(message);   //Send the request
   if (httpResponseCode > 0) {
@@ -195,7 +198,7 @@ int WifiTransmit(int current) {
 
 
 
-void LightCycle() {
+void lightCycle() {
   static int pos = 0;
   switch (pos) {
     case 0:

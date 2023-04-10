@@ -24,15 +24,28 @@ else:
     print('No serial ports detected!')
     quit()
 
-node_ID = input("Enter node name or leave blank to use MAC address: ")
-wifi_ssid = input("Enter Wifi SSID: ")
-wifi_pass = input("Enter WiFi Password: ")
+node_ID = input('Enter node name or leave blank to use MAC address: ')
+wifi_ssid = input('Enter Wifi SSID: ')
+wifi_pass = input('Enter WiFi Password: ')
+csc_id = input('Enter CSC ID: ')
+building_id = input('Enter Building ID: ')
+machine_id = input('Enter \'w\' for washer or \'d\' for dryer: ')
 
 with open('template.c','r') as file:
     filedata = file.read()
 
 filedata = re.sub('USER_SSID', wifi_ssid, filedata) # substitutes user SSID and password into arduino code
 filedata = re.sub('USER_PASSWORD', wifi_pass, filedata)
+filedata = re.sub('CSC_ID', csc_id, filedata)
+filedata = re.sub('BUILDING_ID', building_id, filedata)
+if machine_id == 'w':
+    filedata = re.sub('MACHINE_TYPE', 'Washer', filedata)
+elif machine_id == 'd':
+    filedata = re.sub('MACHINE_TYPE', 'Dryer', filedata)
+else:
+    print('Invalid machine type')
+    exit()
+
 if node_ID != '': # If ID is blank, use the device's MAC address
     filedata = re.sub('NODE_ID','\"{}\"'.format(node_ID), filedata)
 else:
