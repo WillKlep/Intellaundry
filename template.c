@@ -139,6 +139,9 @@ void loop() {
         digitalWrite(SEG_DP, HIGH);
         delay(50);
         digitalWrite(SEG_DP, LOW);
+      }else{
+        displayNumber(1);
+        delay(50);
       }
     }
     else {  //no connection established
@@ -146,6 +149,8 @@ void loop() {
     }
   }
   if (connect_state == 0) { //if connection is not established or proven
+    displayNumber(2);
+    delay(50);
     WiFi.disconnect();
     wifiMulti.run();
     if ((millis() - light_time1) > 100){  //step to next light animation
@@ -191,12 +196,127 @@ int WifiTransmit(int current) {
   if (httpResponseCode > 0) {
     count++;
     verify = 1;
+  }else{
+    displayNumber(0);
+    delay(50);
   }
   http.end(); //Free the resources
   return verify;
 }
 
+void clearDisplay(){
+    digitalWrite(SEG_A, LOW);
+    digitalWrite(SEG_B, LOW);
+    digitalWrite(SEG_C, LOW);
+    digitalWrite(SEG_D, LOW);
+    digitalWrite(SEG_E, LOW);
+    digitalWrite(SEG_F, LOW);
+    digitalWrite(SEG_G, LOW);
+}
 
+void displayNumber(int n){
+    switch(n){
+    case 0:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, HIGH);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, LOW);
+        break;
+    case 1:
+        digitalWrite(SEG_A, LOW);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, LOW);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, LOW);
+        digitalWrite(SEG_G, LOW);
+        break;
+    case 2:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, LOW);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, HIGH);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, LOW);
+        break;
+    case 3:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, LOW);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 4:
+        digitalWrite(SEG_A, LOW);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, LOW);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 5:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, LOW);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 6:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, LOW);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, HIGH);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 7:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, LOW);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, LOW);
+        digitalWrite(SEG_G, LOW);
+        break;
+    case 8:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, HIGH);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 9:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, LOW);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, HIGH);
+        break;
+    case 0:
+        digitalWrite(SEG_A, HIGH);
+        digitalWrite(SEG_B, HIGH);
+        digitalWrite(SEG_C, HIGH);
+        digitalWrite(SEG_D, HIGH);
+        digitalWrite(SEG_E, HIGH);
+        digitalWrite(SEG_F, HIGH);
+        digitalWrite(SEG_G, LOW);
+        break;
+    }
+}
 
 void lightCycle() {
   static int pos = 0;
