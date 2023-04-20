@@ -53,6 +53,10 @@ const uint16_t samplesAveraged = 5;   //highest & lowest are dropped, remaining 
 #define SEG_G 25
 #define SEG_DP 19
 
+#define NODE_ID "Test"        //Internal use or same as CSC_ID
+#define CSC_ID "DEFAULT"      //ABC-123
+#define BUILDING_ID "1"       //Numerical 1-3
+#define MACHINE_TYPE "Dryer"  //"Washer" or "Dryer"
 
 
 void setup() {
