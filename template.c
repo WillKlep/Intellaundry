@@ -4,10 +4,8 @@
 #include <driver/adc.h>
 #include <WiFiMulti.h>
 
-WiFiMulti wifiMulti;  
-
-//const char* url = "https://ec2-18-116-20-30.us-east-2.compute.amazonaws.com";
-const char* url = "https://intellaundry.com/api/logESPdata";
+WiFiMulti wifiMulti;
+const char* url = "https://intellaundry.com/api/logLaundryData";
 
 const char* root_ca = "-----BEGIN CERTIFICATE-----\n" \
 "MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw\n" \
@@ -53,12 +51,6 @@ const uint16_t samplesAveraged = 5;   //highest & lowest are dropped, remaining 
 #define SEG_G 25
 #define SEG_DP 19
 
-#define NODE_ID "Test"        //Internal use or same as CSC_ID
-#define CSC_ID "DEFAULT"      //ABC-123
-#define BUILDING_ID "1"       //Numerical 1-3
-#define MACHINE_TYPE "Dryer"  //"Washer" or "Dryer"
-
-
 void setup() {
   pinMode(SEG_A, OUTPUT);
   pinMode(SEG_B, OUTPUT);
@@ -70,14 +62,9 @@ void setup() {
   pinMode(SEG_DP, OUTPUT);
   pinMode(SENSE_PIN, INPUT);
 
-
   adc1_config_width(ADC_WIDTH_BIT_12); //Initialize ADC width and attenuation
   adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 
-  for (int i = 0; i < 6; i++) {
-    lightCycle();
-    delay(100);
-  }
   digitalWrite(SEG_A, HIGH);
   digitalWrite(SEG_B, HIGH);
   digitalWrite(SEG_C, HIGH);
@@ -89,8 +76,8 @@ void setup() {
   delay(50);
 
   WiFi.mode(WIFI_STA);
-  wifiMulti.addAP(USER_SSID, USER_PASSWORD);  //demo wifi only
-  //wifiMulti.addAP("ONUGuest", "password");
+  wifiMulti.addAP(USER_SSID, USER_PASSWORD);
+  //wifiMulti.addAP("ONUGuest", NULL);
 
   wifiMulti.run();
 
@@ -102,13 +89,10 @@ void setup() {
   digitalWrite(SEG_F, LOW);
   digitalWrite(SEG_G, LOW);
   digitalWrite(SEG_DP, LOW);
-
 }
 
-
-
-char message[128];
-StaticJsonDocument<128> doc;
+char message[256];
+StaticJsonDocument<256> doc;
 HTTPClient http;
 int httpResponseCode;
 int current;
@@ -116,12 +100,9 @@ volatile int cur;
 int receive_state;
 int connect_state;
 unsigned long start_time = 0;
-unsigned long light_time1 = 0;
 const int cycle_time = 500;   //minimum cycle time (miliseconds)
 const int cur_scale = 57132;    //57.132
 const int cur_offset = 65811;   //65.811
-
-
 
 void loop() {
   volatile unsigned int cur_max = 0; //Reset min and max
@@ -145,7 +126,8 @@ void loop() {
         digitalWrite(SEG_DP, LOW);
       }else{
         displayNumber(1);
-        delay(50);
+        delay(500);
+        clearDisplay();
       }
     }
     else {  //no connection established
@@ -154,18 +136,12 @@ void loop() {
   }
   if (connect_state == 0) { //if connection is not established or proven
     displayNumber(2);
-    delay(50);
     WiFi.disconnect();
     wifiMulti.run();
-    if ((millis() - light_time1) > 100){  //step to next light animation
-      lightCycle();
-      light_time1 = millis();
-    }
+    clearDisplay();
   }
   delay(10);
 }
-
-
 
 int ReadADC() {
   volatile int adc_max = 0; //Reset min and max
@@ -192,17 +168,24 @@ int WifiTransmit(int current) {
   doc["current"] = current;
   doc["count"] = count;
   doc["cscID"] = CSC_ID;
-  doc["buildingID"] = BUILDING_ID;
+  doc["buildingName"] = BUILDING_NAME;
   doc["espPswd"] = "cjfskbbxgzkpaskb";
   doc["machineType"] = MACHINE_TYPE;
   serializeJson(doc, message);
   httpResponseCode = http.POST(message);   //Send the request
   if (httpResponseCode > 0) {
-    count++;
-    verify = 1;
+    if (httpResponseCode == 200){
+      count++;
+      verify = 1;
+    }else{
+      displayNumber(3);
+      delay(500);
+      clearDisplay();
+    }
   }else{
     displayNumber(0);
-    delay(50);
+    delay(500);
+    clearDisplay();
   }
   http.end(); //Free the resources
   return verify;
@@ -244,8 +227,8 @@ void displayNumber(int n){
         digitalWrite(SEG_C, LOW);
         digitalWrite(SEG_D, HIGH);
         digitalWrite(SEG_E, HIGH);
-        digitalWrite(SEG_F, HIGH);
-        digitalWrite(SEG_G, LOW);
+        digitalWrite(SEG_F, LOW);
+        digitalWrite(SEG_G, HIGH);
         break;
     case 3:
         digitalWrite(SEG_A, HIGH);
@@ -310,98 +293,5 @@ void displayNumber(int n){
         digitalWrite(SEG_F, HIGH);
         digitalWrite(SEG_G, HIGH);
         break;
-    case 0:
-        digitalWrite(SEG_A, HIGH);
-        digitalWrite(SEG_B, HIGH);
-        digitalWrite(SEG_C, HIGH);
-        digitalWrite(SEG_D, HIGH);
-        digitalWrite(SEG_E, HIGH);
-        digitalWrite(SEG_F, HIGH);
-        digitalWrite(SEG_G, LOW);
-        break;
     }
-}
-
-void lightCycle() {
-  static int pos = 0;
-  switch (pos) {
-    case 0:
-      digitalWrite(SEG_A, HIGH);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 1:
-      digitalWrite(SEG_A, HIGH);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 2:
-      digitalWrite(SEG_A, LOW);
-      digitalWrite(SEG_B, HIGH);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 3:
-      // C
-      digitalWrite(SEG_A, LOW);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, HIGH);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 4:
-      digitalWrite(SEG_A, LOW);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, HIGH);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 5:
-      digitalWrite(SEG_A, LOW);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, HIGH);
-      digitalWrite(SEG_F, LOW);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-    case 6:
-      digitalWrite(SEG_A, LOW);
-      digitalWrite(SEG_B, LOW);
-      digitalWrite(SEG_C, LOW);
-      digitalWrite(SEG_D, LOW);
-      digitalWrite(SEG_E, LOW);
-      digitalWrite(SEG_F, HIGH);
-      digitalWrite(SEG_G, LOW);
-      digitalWrite(SEG_DP, LOW);
-      break;
-
-      if (pos >= 6) {
-        pos = 0;
-      }
-      else {
-        pos++;
-      }
-  }
 }
