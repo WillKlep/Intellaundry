@@ -39,6 +39,9 @@ const char* root_ca = "-----BEGIN CERTIFICATE-----\n" \
 "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n" \
 "-----END CERTIFICATE-----\n";
 
+const int cycle_time = 500;   //minimum cycle time (miliseconds)
+const double cur_scale = 57.132;
+const double cur_offset = 65.811;
 const uint16_t samplesPerRead = 450;  //367 sample per 60hz cycle, 440 per 50hz cycle - 450 is 20.45ms
 const uint16_t samplesAveraged = 5;   //highest & lowest are dropped, remaining are averaged
 #define SENSE_PIN 34
@@ -95,32 +98,35 @@ char message[256];
 StaticJsonDocument<256> doc;
 HTTPClient http;
 int httpResponseCode;
-int current;
-volatile int cur;
-int receive_state;
 int connect_state;
 unsigned long start_time = 0;
-const int cycle_time = 500;   //minimum cycle time (miliseconds)
-const int cur_scale = 57132;    //57.132
-const int cur_offset = 65811;   //65.811
+double cur_read;
+double cur_max;
+double cur_min;
+double cur_sum;
+int current = 0;
+int prev_current1 = 0;
+int prev_current2 = 0;
 
 void loop() {
-  volatile unsigned int cur_max = 0; //Reset min and max
-  volatile unsigned int cur_min = 40000;
-  volatile unsigned long cur_sum = 0;
+  cur_max = 0; //Reset min and max after each loop
+  cur_min = 40000;
+  cur_sum = 0;
   if ((millis() - start_time) > cycle_time) {
     start_time = millis();
     if (WiFi.status() == WL_CONNECTED) { //Check the current connection status
       for (int i = 0; i < samplesAveraged; i++) {
-        cur = (((ReadADC() * 1000) - cur_offset) / cur_scale) * 1000; //ADC is multiplied to match scale & offset, result is then set to integer in mA
-        cur_min = (cur_min > cur) ? cur : cur_min; //save min and max of readings
-        cur_max = (cur_max < cur) ? cur : cur_max;
-        cur_sum += cur;   //running sum
+        cur_read = ((ReadADC() - cur_offset) / cur_scale); //ADC is multiplied to match scale & offset
+        cur_min = (cur_min > cur_read) ? cur_read : cur_min; //save min and max of readings
+        cur_max = (cur_max < cur_read) ? cur_read : cur_max;
+        cur_sum += cur_read;   //running sum
       }
-      current = (long)((cur_sum - (cur_min + cur_max)) / (samplesAveraged - 2));  //average mA after removing min & max outliers
-      receive_state = WifiTransmit(current);
-      connect_state = receive_state;  //checks for http response code verification to prove connection durring current data transmission
-      if (receive_state == 1) {
+      prev_current2 = prev_current1;
+      prev_current1 = current;
+      current = (long)(((cur_sum - (cur_min + cur_max)) / (samplesAveraged - 2))*1000); //remove min and max, scale to mA
+      current = (current < 0) ? 0 : current; //cap at 0, no negative current
+      connect_state = WifiTransmit((current + prev_current1 + prev_current2) / 3);  //sends moving avg of last 3 readings, records whether the transmission succeeded
+      if (connect_state == 1) {
         digitalWrite(SEG_DP, HIGH);
         delay(50);
         digitalWrite(SEG_DP, LOW);
@@ -136,25 +142,24 @@ void loop() {
   }
   if (connect_state == 0) { //if connection is not established or proven
     displayNumber(2);
+    delay(500);
     WiFi.disconnect();
     wifiMulti.run();
     clearDisplay();
   }
-  delay(10);
+  delay(100);
 }
 
 int ReadADC() {
-  volatile int adc_max = 0; //Reset min and max
-  volatile int adc_min = 4095;
-  volatile int raw_adc;
-  volatile int value;
+  int adc_max = 0; //Reset min and max
+  int adc_min = 4095;
+  int raw_adc;
   for (int i = 0; i < samplesPerRead; i++) {
     raw_adc = adc1_get_raw(ADC1_CHANNEL_6); // GPIO34
     adc_min = (adc_min > raw_adc) ? raw_adc : adc_min; //save min and max of reading
     adc_max = (adc_max < raw_adc) ? raw_adc : adc_max;
   }
-  value = adc_max - ((adc_max + adc_min) / 2);
-  return value;
+  return adc_max - ((adc_max + adc_min) / 2);
 }
 
 
