@@ -147,7 +147,7 @@ void loop() {
     wifiMulti.run();
     clearDisplay();
   }
-  delay(100);
+  delay(10);
 }
 
 int ReadADC() {
