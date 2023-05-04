@@ -1,3 +1,10 @@
+/*
+Error codes:
+0 - Failed to connect to Wifi
+1 - Failed to send packet
+2 - Server not found (404)
+3 - Other server error (not 200 or 404)
+*/
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
@@ -130,24 +137,16 @@ void loop() {
         digitalWrite(SEG_DP, HIGH);
         delay(50);
         digitalWrite(SEG_DP, LOW);
-      }else{
-        displayNumber(1);
-        delay(500);
-        clearDisplay();
       }
     }
     else {  //no connection established
-      connect_state = 0;
+     displayNumber(0);
+     delay(500);
+     WiFi.disconnect();
+     wifiMulti.run();
+     clearDisplay();
     }
   }
-  if (connect_state == 0) { //if connection is not established or proven
-    displayNumber(2);
-    delay(500);
-    WiFi.disconnect();
-    wifiMulti.run();
-    clearDisplay();
-  }
-  delay(10);
 }
 
 int ReadADC() {
@@ -182,13 +181,17 @@ int WifiTransmit(int current) {
     if (httpResponseCode == 200){
       count++;
       verify = 1;
+    }else if (httpResponseCode == 404){
+      displayNumber(2);
+      delay(500);
+      clearDisplay();
     }else{
       displayNumber(3);
       delay(500);
       clearDisplay();
     }
   }else{
-    displayNumber(0);
+    displayNumber(1);
     delay(500);
     clearDisplay();
   }
