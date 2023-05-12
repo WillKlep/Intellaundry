@@ -1,0 +1,30 @@
+// Custom.scss
+
+//google fonts
+@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Markazi+Text:wght@500&display=swap');
+
+// Include any default variable overrides here (though functions won't be available)
+
+@import "../node_modules/bootstrap/scss/_functions";
+@import "../node_modules/bootstrap/scss/_variables";
+
+$custom-theme-colors:(
+    "light-orange": rgb(255, 244, 226),
+    "onu-orange": rgb(233,112,0),
+    "dark-red": rgb(150, 20, 8),
+    "light-grey": rgb(210, 210, 210),
+    "light-red": rgb(255, 163, 163)
+
+);
+
+
+
+$theme-colors: map-merge($custom-theme-colors, $theme-colors);
+
+
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+$font-family-sans-serif: "Alfa Slab One", "Markazi Text", ;
+
+// Then add additional custom code here
+

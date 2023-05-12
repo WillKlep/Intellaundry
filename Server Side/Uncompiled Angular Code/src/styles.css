@@ -1,0 +1,5 @@
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+.heading { font-family: 'Alfa Slab One'}
+.info {font-family: 'Markazi Text'; font-size:large}

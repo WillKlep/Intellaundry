@@ -1,0 +1,53 @@
+<div *ngIf = "!loading && !loading">
+    <table mat-table [dataSource]="dryer_list" class="table">
+        
+        <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">ID</th>
+            <td mat-cell *matCellDef="let dryer_list" class="text-center text-nowrap info" [ngClass]="{'bg-light-red': dryer_list.errorCodeList.includes('NO_UPDATES')}">{{dryer_list.machineID}}</td>
+        </ng-container>
+    
+        <ng-container matColumnDef="state">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">State</th>
+            <td mat-cell *matCellDef="let dryer_list" class="text-center info" [ngClass]="{'bg-light-red': dryer_list.errorCodeList.includes('NO_UPDATES')}">
+                <!-- check for NO_UPDATES errorcode-->     
+                <ng-container *ngIf="!dryer_list.errorCodeList.includes('NO_UPDATES')">
+                    <p>{{dryer_list.cycle}}</p>
+                </ng-container>
+            </td>
+        </ng-container>
+    
+        <ng-container matColumnDef="notify">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">Inactivity</th>
+
+            <td mat-cell *matCellDef="let dryer_list" class="text-center info" [ngClass]="{'bg-light-red': dryer_list.errorCodeList.includes('NO_UPDATES')}" id="{{dryer_list.machineID}}">
+                
+            <!--Check for NO_UPDATES errorcode-->
+            <ng-container *ngIf="!dryer_list.errorCodeList.includes('NO_UPDATES'); else connectionFailedStatus">
+                <ng-container *ngIf="!dryer_list.active; else machineIsActive" class="text-nowrap">
+                    <p *ngIf="Math.trunc((dryer_list.UNIXtimeWhenUpdate - dryer_list.UNIXtimeWhenOff)/1000/60) > 15">+15 Minutes</p>
+                    <p *ngIf="!(Math.trunc((dryer_list.UNIXtimeWhenUpdate - dryer_list.UNIXtimeWhenOff)/1000/60) > 15)">{{Math.trunc((dryer_list.UNIXtimeWhenUpdate - dryer_list.UNIXtimeWhenOff)/1000/60)}} Minutes</p> 
+                
+                </ng-container>
+            </ng-container>
+
+            
+            
+            <ng-template #machineIsActive>
+                <!--determine what bell icon should be created-->
+                <mat-icon *ngIf="checkForId(dryer_list.machineID); else notifyIsOn" style="cursor:pointer;" (click)="unSubFromNotification(dryer_list.machineID)" svgIcon="notifyOn"></mat-icon><!--</mat-button-toggle>-->
+                <ng-template #notifyIsOn>
+                <mat-icon style="cursor:pointer;" (click)="subscribeToNotifications(dryer_list.machineID)" svgIcon="notifyOff"></mat-icon><!--</mat-button-toggle>-->
+                </ng-template>
+            </ng-template>
+
+            </td>
+
+            <ng-template #connectionFailedStatus><p>Connection Failed</p></ng-template>
+
+        
+        </ng-container>
+        
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let dryer_list; columns: columns"></tr>
+    </table>
+    </div>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+    <!-- Required meta tags-->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>ONU Laundry</title>
+</head>
+<!-- Viewport-->
+<div class="viewportDiv d-flex flex-column vh-100">
+<!-- Navbar-->
+    <nav class="navbar navbar-expand-xxl shadow bg-light-orange navbar-dark justify-content-center border-bottom border-dark">
+    <div class="navbar-brand text-onu-orange titlefont" id="buildingDropdown">{{buildingName}} Laundry</div>
+    <div class="dropdown"><button id = "buildingDropdownButton" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Laundry Rooms</button>
+        <ul class="dropdown-menu">
+            <router-outlet name="buildingDropdown"></router-outlet>
+        </ul>
+    </div>
+</nav>
+<!-- Tables--> 
+<section class="bg-body-secondary text-dark p-3 flex-grow-1">
+    <div class="container-fluid">
+        <div class="row text-center justify-content-center">
+            <div class="col m-3">
+                <div class="bg-white container-fluid shadow-lg border border-2 border-dark rounded p-4">
+                <h1 class="heading">Washers</h1>
+                <router-outlet></router-outlet>
+                </div>
+                <a class="btn btn-secondary m-2" role="button" (click)="subToAll('Washer')">Notify for all Washers</a>
+            </div>
+            <div class="col m-3">
+                <div class="bg-white container-fluid shadow-lg border border-2 border-dark rounded p-4">
+                <h1 class="heading">Monitoring</h1>
+                <router-outlet name="monitorTable"></router-outlet>
+                </div>
+                <a class="btn btn-secondary m-2" role="button" (click)="unsubFromAll()">Remove all Notifications</a>
+            </div>
+            <div class="col m-3">
+                <div class="bg-white container-fluid shadow-lg border border-2 border-dark rounded p-4">
+                <h1 class="heading">Dryers</h1>
+                <router-outlet name="dryerTable"></router-outlet>
+            </div>
+            <a class="btn btn-secondary m-2" role="button" (click)="subToAll('Dryer')">Notify for all Dryers</a>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- bottom of page-->
+<div class="bg-light-orange shadow text-center justify-content-center bg-light-orange p-3 border-top border-dark">
+    <a class="btn btn-outline-dark-red" href="https://www.cscsw.com/request-service/" role="button">Problem with the machines? Report it Here!</a>
+</div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>

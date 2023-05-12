@@ -1,0 +1,50 @@
+<div *ngIf = "!loading && !loading">
+<table mat-table [dataSource]="washer_list" class="table">
+
+    <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">ID</th>
+        <td mat-cell *matCellDef="let washer_list" class="text-nowrap text-center info" [ngClass]="{'bg-light-red': washer_list.errorCodeList.includes('NO_UPDATES')}">{{washer_list.machineID}}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="state">
+        <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">State</th>
+        <td mat-cell *matCellDef="let washer_list" class="text-center info" [ngClass]="{'bg-light-red': washer_list.errorCodeList.includes('NO_UPDATES')}">
+
+            <!-- check for NO_UPDATES errorcode-->     
+            <ng-container *ngIf="!washer_list.errorCodeList.includes('NO_UPDATES')">
+                <p>{{washer_list.cycle}}</p>
+            </ng-container>
+        </td>
+    </ng-container>
+
+    <ng-container matColumnDef="notify">
+        <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">Inactivity</th>
+        
+        
+        <td mat-cell *matCellDef="let washer_list" class="text-center info" [ngClass]="{'bg-light-red': washer_list.errorCodeList.includes('NO_UPDATES')}">
+            
+            <!--Check if a washer has been inactive for more than 15 minutes-->
+             <!--Check for NO_UPDATES errorcode-->
+             <ng-container *ngIf="!washer_list.errorCodeList.includes('NO_UPDATES'); else connectionFailedStatus">
+                <ng-container *ngIf="!washer_list.active; else machineIsActive" class="text-nowrap">
+                    <p *ngIf="Math.trunc((washer_list.UNIXtimeWhenUpdate - washer_list.UNIXtimeWhenOff)/1000/60) > 15">+15 Minutes</p>
+                    <p *ngIf="!(Math.trunc((washer_list.UNIXtimeWhenUpdate - washer_list.UNIXtimeWhenOff)/1000/60) > 15)">{{Math.trunc((washer_list.UNIXtimeWhenUpdate - washer_list.UNIXtimeWhenOff)/1000/60)}} Minutes</p> 
+                
+                </ng-container>
+            </ng-container>
+
+            <ng-template #machineIsActive>
+                <mat-icon *ngIf="checkForId(washer_list.machineID); else notifyIsOn" style="cursor:pointer;" (click)="unSubFromNotification(washer_list.machineID)" svgIcon="notifyOn"></mat-icon><!--</mat-button-toggle>-->
+                <ng-template #notifyIsOn>
+                <mat-icon style="cursor:pointer;" (click)="subscribeToNotifications(washer_list.machineID)" svgIcon="notifyOff"></mat-icon><!--</mat-button-toggle>-->
+                </ng-template>
+            </ng-template>
+        </td>
+
+        <ng-template #connectionFailedStatus><p>Connection Failed</p></ng-template>
+
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let washer_list; columns: columns"></tr>
+</table>
+</div>

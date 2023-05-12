@@ -1,0 +1,39 @@
+<div *ngIf = "!loading && !loading">
+    <table mat-table [dataSource]="monitor_list" class="table">
+        
+        <ng-container matColumnDef="machineName">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">Machine</th>
+            <td mat-cell *matCellDef="let monitor_list" class="text-center info">{{monitor_list.machineType}} {{monitor_list.id}} ({{monitor_list.buildingName}})</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let monitor_list; columns: columns"></tr>
+    </table>
+
+    <!--Table used for displaying esp data. Used for testing-->
+    
+    <!--
+    <table mat-table [dataSource]="esp_list" class="table text-dark">
+        
+        <ng-container matColumnDef="espID">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">ESP ID</th>
+            <td mat-cell *matCellDef="let esp_list" class="text-center info">{{esp_list.espID}}</td>
+        </ng-container>
+        <ng-container matColumnDef="machineID">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">CSC ID</th>
+            <td mat-cell *matCellDef="let esp_list" class="text-center info">{{esp_list.machineID}}</td>
+        </ng-container>
+        <ng-container matColumnDef="recentData">
+            <th mat-header-cell *matHeaderCellDef class = "text-center justify-content-center info">recentData</th>
+            <td mat-cell *matCellDef="let esp_list" class="text-center info">
+                <p class ="text-break">Count: {{parseJSON(esp_list.dataArray.at(-1))[0]}}</p>
+                <p>Current: {{parseJSON(esp_list.dataArray.at(-1))[1]}}</p>
+                <p>Time: {{parseJSON(esp_list.dataArray.at(-1))[2]}}</p>            
+            </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="espTableColumns"></tr>
+        <tr mat-row *matRowDef="let esp_list; columns: espTableColumns"></tr>
+    </table>
+-->
+
+</div>
